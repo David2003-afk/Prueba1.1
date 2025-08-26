@@ -188,67 +188,68 @@ with tab1:
     st.subheader("Columnas Disponibles")
     with st.expander("Ver todas las columnas"):
         st.write(list(df.columns))
+        
     # c) Línea del total de fallecidos (>2500) vs Confirmed/Recovered/Active por país
-st.header("c) Gráfica de líneas por país (muertes > 2500)")
-C, D = cols["confirmed"], cols["deaths"]
-R, A = cols["recovered"], cols["active"]
+    st.header("c) Gráfica de líneas por país (muertes > 2500)")
+    C, D = cols["confirmed"], cols["deaths"]
+    R, A = cols["recovered"], cols["active"]
+    
+    metrics = [m for m in [C, D, R, A] if m and m in df.columns]
+    base = df[[cols["country"]] + metrics].copy()
+    base = base.rename(columns={cols["country"]: "Country_Region"})
+    
+    filtrado = base.loc[base[D] > 2500]
+    agr = filtrado.groupby("Country_Region").sum(numeric_only=True)
+    orden = agr.sort_values(D)
 
-metrics = [m for m in [C, D, R, A] if m and m in df.columns]
-base = df[[cols["country"]] + metrics].copy()
-base = base.rename(columns={cols["country"]: "Country_Region"})
-
-filtrado = base.loc[base[D] > 2500]
-agr = filtrado.groupby("Country_Region").sum(numeric_only=True)
-orden = agr.sort_values(D)
-
-if not orden.empty:
-    st.line_chart(orden[[c for c in [C, R, A] if c in orden.columns]])
-
-# d) Barras de fallecidos de estados de Estados Unidos
-st.header("d) Barras: fallecidos por estado de EE.UU.")
-country_col = cols["country"]
-prov_col = cols["province"]
-
-dfu = df[df[country_col] == "US"]
-if len(dfu) == 0:
-    st.info("Para esta fecha no hay registros con Country_Region='US'.")
-else:
-    agg_us = dfu.groupby(prov_col)[D].sum(numeric_only=True).sort_values(ascending=False)
-    top_n = st.slider("Top estados por fallecidos", 5, 50, 20, key="us_slider")
-    st.bar_chart(agg_us.head(top_n))
-
-# e) Gráfica de sectores (simulada con barra si no hay pie nativo)
-st.header("e) Gráfica de sectores (simulada)")
-# Usar países reales disponibles en lugar de valores fijos
-paises_latam_disponibles = [p for p in paises_disponibles if p in ["Colombia", "Chile", "Peru", "Argentina", "Mexico", "Brazil"]]
-if not paises_latam_disponibles:
-    paises_latam_disponibles = paises_disponibles[:5]  # Tomar los primeros 5 si no hay coincidencias
-
-sel = st.multiselect("Países", sorted(df[country_col].unique().tolist()), 
-                    default=paises_latam_disponibles, key="sectores")
-agg_latam = df[df[country_col].isin(sel)].groupby(country_col)[D].sum(numeric_only=True)
-if agg_latam.sum() > 0:
-    st.write("Participación de fallecidos")
-    st.dataframe(agg_latam)
-    # Como Streamlit no tiene pie nativo, mostramos distribución normalizada como barra
-    normalized = agg_latam / agg_latam.sum()
-    st.bar_chart(normalized)
-else:
-    st.warning("Sin datos para los países seleccionados")
-
-# f) Histograma del total de fallecidos por país (simulado con bar_chart)
-st.header("f) Histograma de fallecidos por país")
-muertes_pais = df.groupby(country_col)[D].sum(numeric_only=True)
-st.bar_chart(muertes_pais)
-
-# g) Boxplot de Confirmed, Deaths, Recovered, Active (simulado con box_chart)
-st.header("g) Boxplot (simulado)")
-cols_box = [c for c in [C, D, R, A] if c and c in df.columns]
-subset = df[cols_box].fillna(0)
-subset_plot = subset.head(25)
-# Streamlit no tiene boxplot nativo, así que mostramos estadísticas resumen en tabla
-st.write("Resumen estadístico (simulación de boxplot):")
-st.dataframe(subset_plot.describe().T)
+    if not orden.empty:
+        st.line_chart(orden[[c for c in [C, R, A] if c in orden.columns]])
+    
+    # d) Barras de fallecidos de estados de Estados Unidos
+    st.header("d) Barras: fallecidos por estado de EE.UU.")
+    country_col = cols["country"]
+    prov_col = cols["province"]
+    
+    dfu = df[df[country_col] == "US"]
+    if len(dfu) == 0:
+        st.info("Para esta fecha no hay registros con Country_Region='US'.")
+    else:
+        agg_us = dfu.groupby(prov_col)[D].sum(numeric_only=True).sort_values(ascending=False)
+        top_n = st.slider("Top estados por fallecidos", 5, 50, 20, key="us_slider")
+        st.bar_chart(agg_us.head(top_n))
+    
+    # e) Gráfica de sectores (simulada con barra si no hay pie nativo)
+    st.header("e) Gráfica de sectores (simulada)")
+    # Usar países reales disponibles en lugar de valores fijos
+    paises_latam_disponibles = [p for p in paises_disponibles if p in ["Colombia", "Chile", "Peru", "Argentina", "Mexico", "Brazil"]]
+    if not paises_latam_disponibles:
+        paises_latam_disponibles = paises_disponibles[:5]  # Tomar los primeros 5 si no hay coincidencias
+    
+    sel = st.multiselect("Países", sorted(df[country_col].unique().tolist()), 
+                        default=paises_latam_disponibles, key="sectores")
+    agg_latam = df[df[country_col].isin(sel)].groupby(country_col)[D].sum(numeric_only=True)
+    if agg_latam.sum() > 0:
+        st.write("Participación de fallecidos")
+        st.dataframe(agg_latam)
+        # Como Streamlit no tiene pie nativo, mostramos distribución normalizada como barra
+        normalized = agg_latam / agg_latam.sum()
+        st.bar_chart(normalized)
+    else:
+        st.warning("Sin datos para los países seleccionados")
+    
+    # f) Histograma del total de fallecidos por país (simulado con bar_chart)
+    st.header("f) Histograma de fallecidos por país")
+    muertes_pais = df.groupby(country_col)[D].sum(numeric_only=True)
+    st.bar_chart(muertes_pais)
+    
+    # g) Boxplot de Confirmed, Deaths, Recovered, Active (simulado con box_chart)
+    st.header("g) Boxplot (simulado)")
+    cols_box = [c for c in [C, D, R, A] if c and c in df.columns]
+    subset = df[cols_box].fillna(0)
+    subset_plot = subset.head(25)
+    # Streamlit no tiene boxplot nativo, así que mostramos estadísticas resumen en tabla
+    st.write("Resumen estadístico (simulación de boxplot):")
+    st.dataframe(subset_plot.describe().T)
 
     # Mapa interactivo
     st.subheader("Mapa de Distribución Global")
@@ -878,6 +879,3 @@ if st.sidebar.button("Generar Resumen"):
 # ---------------------------------------------------------------
 # Funcionalidades originales (mantenidas por compatibilidad)
 # ---------------------------------------------------------------
-st.title("Exploración COVID-19 – Versión Streamlit (Preg2)")
-st.caption("Adaptación fiel del script original: mostrar/ocultar filas/columnas y varios gráficos (líneas, barras, sectores, histograma y boxplot).")
-

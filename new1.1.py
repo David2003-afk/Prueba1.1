@@ -188,66 +188,7 @@ with tab1:
     st.subheader("Columnas Disponibles")
     with st.expander("Ver todas las columnas"):
         st.write(list(df.columns))
-    
-    # Mapa interactivo
-    st.subheader("Mapa de Distribución Global")
-    if cols['lat'] and cols['long'] and cols['lat'] in df.columns and cols['long'] in df.columns:
-        # Preparar datos para el mapa
-        map_data = df[[cols['lat'], cols['long'], cols['confirmed'], cols['deaths'], cols['country']]].copy()
-        map_data.columns = ['lat', 'lon', 'confirmed', 'deaths', 'country']
-        map_data = map_data.dropna(subset=['lat', 'lon'])
-        
-        # Crear mapa
-        fig = px.scatter_mapbox(map_data, 
-                               lat="lat", 
-                               lon="lon", 
-                               size="confirmed",
-                               color="deaths",
-                               hover_name="country",
-                               hover_data=["confirmed", "deaths"],
-                               zoom=1,
-                               height=500)
-        fig.update_layout(mapbox_style="open-street-map")
-        fig.update_layout(margin={"r":0,"t":0,"l":0,"b":0})
-        st.plotly_chart(fig, use_container_width=True)
-    else:
-        st.info("Los datos de latitud/longitud no están disponibles para esta fecha.")
-    
-    # Gráficos de barras top-N
-    st.subheader("Top Países por Métricas")
-    metric_option = st.selectbox("Seleccione métrica", ["Confirmados", "Fallecidos", "Tasa de Mortalidad"])
-    
-    # Preparar datos agregados por país
-    country_agg = df.groupby(cols['country']).agg({
-        cols['confirmed']: 'sum',
-        cols['deaths']: 'sum'
-    }).reset_index()
-    country_agg['CFR'] = (country_agg[cols['deaths']] / country_agg[cols['confirmed']]) * 100
-    country_agg = country_agg[country_agg[cols['confirmed']] > 0]  # Eliminar división por cero
-    
-    # Ordenar según la métrica seleccionada
-    if metric_option == "Confirmados":
-        top_countries = country_agg.nlargest(10, cols['confirmed'])
-        values = top_countries[cols['confirmed']]
-    elif metric_option == "Fallecidos":
-        top_countries = country_agg.nlargest(10, cols['deaths'])
-        values = top_countries[cols['deaths']]
-    else:
-        top_countries = country_agg[country_agg['CFR'].notna()].nlargest(10, 'CFR')
-        values = top_countries['CFR']
-    
-    # Crear gráfico de barras
-    fig = px.bar(top_countries, 
-                 x=cols['country'], 
-                 y=values,
-                 title=f"Top 10 Países por {metric_option}",
-                 labels={cols['country']: 'País', 'y': metric_option})
-    st.plotly_chart(fig, use_container_width=True)
-
-    st.title("Exploración COVID-19 – Versión Streamlit (Preg2)")
-st.caption("Adaptación fiel del script original: mostrar/ocultar filas/columnas y varios gráficos (líneas, barras, sectores, histograma y boxplot).")
-
-# c) Línea del total de fallecidos (>2500) vs Confirmed/Recovered/Active por país
+    # c) Línea del total de fallecidos (>2500) vs Confirmed/Recovered/Active por país
 st.header("c) Gráfica de líneas por país (muertes > 2500)")
 C, D = cols["confirmed"], cols["deaths"]
 R, A = cols["recovered"], cols["active"]
@@ -308,6 +249,62 @@ subset_plot = subset.head(25)
 # Streamlit no tiene boxplot nativo, así que mostramos estadísticas resumen en tabla
 st.write("Resumen estadístico (simulación de boxplot):")
 st.dataframe(subset_plot.describe().T)
+
+    # Mapa interactivo
+    st.subheader("Mapa de Distribución Global")
+    if cols['lat'] and cols['long'] and cols['lat'] in df.columns and cols['long'] in df.columns:
+        # Preparar datos para el mapa
+        map_data = df[[cols['lat'], cols['long'], cols['confirmed'], cols['deaths'], cols['country']]].copy()
+        map_data.columns = ['lat', 'lon', 'confirmed', 'deaths', 'country']
+        map_data = map_data.dropna(subset=['lat', 'lon'])
+        
+        # Crear mapa
+        fig = px.scatter_mapbox(map_data, 
+                               lat="lat", 
+                               lon="lon", 
+                               size="confirmed",
+                               color="deaths",
+                               hover_name="country",
+                               hover_data=["confirmed", "deaths"],
+                               zoom=1,
+                               height=500)
+        fig.update_layout(mapbox_style="open-street-map")
+        fig.update_layout(margin={"r":0,"t":0,"l":0,"b":0})
+        st.plotly_chart(fig, use_container_width=True)
+    else:
+        st.info("Los datos de latitud/longitud no están disponibles para esta fecha.")
+    
+    # Gráficos de barras top-N
+    st.subheader("Top Países por Métricas")
+    metric_option = st.selectbox("Seleccione métrica", ["Confirmados", "Fallecidos", "Tasa de Mortalidad"])
+    
+    # Preparar datos agregados por país
+    country_agg = df.groupby(cols['country']).agg({
+        cols['confirmed']: 'sum',
+        cols['deaths']: 'sum'
+    }).reset_index()
+    country_agg['CFR'] = (country_agg[cols['deaths']] / country_agg[cols['confirmed']]) * 100
+    country_agg = country_agg[country_agg[cols['confirmed']] > 0]  # Eliminar división por cero
+    
+    # Ordenar según la métrica seleccionada
+    if metric_option == "Confirmados":
+        top_countries = country_agg.nlargest(10, cols['confirmed'])
+        values = top_countries[cols['confirmed']]
+    elif metric_option == "Fallecidos":
+        top_countries = country_agg.nlargest(10, cols['deaths'])
+        values = top_countries[cols['deaths']]
+    else:
+        top_countries = country_agg[country_agg['CFR'].notna()].nlargest(10, 'CFR')
+        values = top_countries['CFR']
+    
+    # Crear gráfico de barras
+    fig = px.bar(top_countries, 
+                 x=cols['country'], 
+                 y=values,
+                 title=f"Top 10 Países por {metric_option}",
+                 labels={cols['country']: 'País', 'y': metric_option})
+    st.plotly_chart(fig, use_container_width=True)
+
 # ---------------------------------------------------------------
 # Pestaña 2: Estadística Avanzada
 # ---------------------------------------------------------------
@@ -881,3 +878,6 @@ if st.sidebar.button("Generar Resumen"):
 # ---------------------------------------------------------------
 # Funcionalidades originales (mantenidas por compatibilidad)
 # ---------------------------------------------------------------
+st.title("Exploración COVID-19 – Versión Streamlit (Preg2)")
+st.caption("Adaptación fiel del script original: mostrar/ocultar filas/columnas y varios gráficos (líneas, barras, sectores, histograma y boxplot).")
+
